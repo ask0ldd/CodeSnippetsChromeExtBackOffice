@@ -1,0 +1,220 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>YouTube Subtitle Editor & SRT Export</title>
+    <style>
+      body {
+        font-family: Arial, sans-serif;
+        max-width: 800px;
+        margin: 20px auto;
+      }
+      #player {
+        width: 100%;
+        height: 360px;
+      }
+      #subtitle-form {
+        margin-top: 15px;
+        display: flex;
+        gap: 10px;
+        flex-wrap: wrap;
+      }
+      input[type="number"] {
+        width: 80px;
+      }
+      textarea {
+        flex: 1;
+        resize: vertical;
+        min-height: 40px;
+      }
+      button {
+        padding: 6px 12px;
+      }
+      table {
+        width: 100%;
+        margin-top: 15px;
+        border-collapse: collapse;
+      }
+      th,
+      td {
+        border: 1px solid #ddd;
+        padding: 8px;
+      }
+      th {
+        background: #f0f0f0;
+      }
+      .subtitle-row:hover {
+        background: #fafafa;
+      }
+    </style>
+  </head>
+  <body>
+    <h1>YouTube Subtitle Editor</h1>
+    <label for="videoIdInput">YouTube Video ID:</label>
+    <input type="text" id="videoIdInput" placeholder="e.g. dQw4w9WgXcQ" />
+    <button id="loadVideoBtn">Load Video</button>
+
+    <div id="player"></div>
+
+    <form id="subtitle-form">
+      <label
+        >Start (sec):
+        <input type="number" step="0.1" min="0" id="startInput" required
+      /></label>
+      <label
+        >End (sec):
+        <input type="number" step="0.1" min="0" id="endInput" required
+      /></label>
+      <textarea id="textInput" placeholder="Subtitle text" required></textarea>
+      <button type="submit">Add / Update Subtitle</button>
+    </form>
+
+    <table>
+      <thead>
+        <tr>
+          <th>#</th>
+          <th>Start</th>
+          <th>End</th>
+          <th>Text</th>
+          <th>Actions</th>
+        </tr>
+      </thead>
+      <tbody id="subtitleList"></tbody>
+    </table>
+
+    <button id="exportSrtBtn">Export as SRT</button>
+
+    <script src="https://www.youtube.com/iframe_api"></script>
+    <script>
+      let player;
+      let subtitles = [];
+      let editIndex = -1;
+
+      function onYouTubeIframeAPIReady() {
+        // Intentionally empty, will create player on load button click
+      }
+
+      document.getElementById("loadVideoBtn").addEventListener("click", () => {
+        const videoId = document.getElementById("videoIdInput").value.trim();
+        if (!videoId) return alert("Please enter a YouTube video ID");
+        if (player) {
+          player.loadVideoById(videoId);
+        } else {
+          player = new YT.Player("player", {
+            height: "360",
+            width: "640",
+            videoId: videoId,
+            events: {
+              onReady: onPlayerReady,
+            },
+          });
+        }
+      });
+
+      function onPlayerReady(event) {
+        event.target.playVideo();
+      }
+
+      function renderSubtitles() {
+        const tbody = document.getElementById("subtitleList");
+        tbody.innerHTML = "";
+        subtitles.forEach((sub, i) => {
+          const tr = document.createElement("tr");
+          tr.className = "subtitle-row";
+          tr.innerHTML = `
+        <td>${i + 1}</td>
+        <td>${sub.start.toFixed(3)}</td>
+        <td>${sub.end.toFixed(3)}</td>
+        <td>${sub.text.replace(/</g, "&lt;").replace(/>/g, "&gt;")}</td>
+        <td>
+          <button onclick="editSubtitle(${i})">Edit</button>
+          <button onclick="deleteSubtitle(${i})">Delete</button>
+          <button onclick="jumpTo(${sub.start})">Jump</button>
+        </td>`;
+          tbody.appendChild(tr);
+        });
+      }
+
+      document
+        .getElementById("subtitle-form")
+        .addEventListener("submit", (e) => {
+          e.preventDefault();
+          const start = parseFloat(document.getElementById("startInput").value);
+          const end = parseFloat(document.getElementById("endInput").value);
+          const text = document.getElementById("textInput").value.trim();
+          if (start >= end)
+            return alert("End time must be greater than start time");
+          if (editIndex >= 0) {
+            subtitles[editIndex] = { start, end, text };
+            editIndex = -1;
+          } else {
+            subtitles.push({ start, end, text });
+          }
+          subtitles.sort((a, b) => a.start - b.start);
+          renderSubtitles();
+          e.target.reset();
+        });
+
+      function editSubtitle(index) {
+        const sub = subtitles[index];
+        document.getElementById("startInput").value = sub.start;
+        document.getElementById("endInput").value = sub.end;
+        document.getElementById("textInput").value = sub.text;
+        editIndex = index;
+        window.scrollTo(0, 0);
+      }
+
+      function deleteSubtitle(index) {
+        if (confirm("Delete this subtitle?")) {
+          subtitles.splice(index, 1);
+          renderSubtitles();
+          if (editIndex === index) {
+            document.getElementById("subtitle-form").reset();
+            editIndex = -1;
+          }
+        }
+      }
+
+      function jumpTo(time) {
+        if (player && player.seekTo) {
+          player.seekTo(time, true);
+          player.playVideo();
+        }
+      }
+
+      function srtTimeFormat(seconds) {
+        const h = Math.floor(seconds / 3600);
+        const m = Math.floor((seconds % 3600) / 60);
+        const s = Math.floor(seconds % 60);
+        const ms = Math.floor((seconds - Math.floor(seconds)) * 1000);
+        return (
+          String(h).padStart(2, "0") +
+          ":" +
+          String(m).padStart(2, "0") +
+          ":" +
+          String(s).padStart(2, "0") +
+          "," +
+          String(ms).padStart(3, "0")
+        );
+      }
+
+      document.getElementById("exportSrtBtn").addEventListener("click", () => {
+        if (subtitles.length === 0) return alert("No subtitles to export!");
+        let srtContent = "";
+        subtitles.forEach((sub, i) => {
+          srtContent += i + 1 + "\n";
+          srtContent +=
+            srtTimeFormat(sub.start) + " --> " + srtTimeFormat(sub.end) + "\n";
+          srtContent += sub.text + "\n\n";
+        });
+        const blob = new Blob([srtContent], { type: "text/plain" });
+        const a = document.createElement("a");
+        a.href = URL.createObjectURL(blob);
+        a.download = "subtitles.srt";
+        a.click();
+        URL.revokeObjectURL(a.href);
+      });
+    </script>
+  </body>
+</html>
