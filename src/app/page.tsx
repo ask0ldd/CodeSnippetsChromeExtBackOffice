@@ -2,25 +2,22 @@
 // https://developers.google.com/youtube/iframe_api_reference
 "use client";
 
-import { useEffect, useRef, useState } from "react";
-
-type Subtitle = {
-  start: number;
-  end: number;
-  text: string;
-};
+import ISubtitle from "@/interfaces/ISubtitle";
+import { Fragment, useCallback, useEffect, useRef, useState } from "react";
 
 export default function SubtitleEditor() {
   const [videoId, setVideoId] = useState("");
   const [inputVideoId, setInputVideoId] = useState("");
-  const [subtitles, setSubtitles] = useState<Subtitle[]>([]);
-  const [editIndex, setEditIndex] = useState<number>(-1);
+  const [subtitles, setSubtitles] = useState<ISubtitle[]>([]);
 
-  const [start, setStart] = useState<number>(0);
-  const [end, setEnd] = useState<number>(0);
+  const [currentTimePosition, setCurrentTimePosition] = useState<number>(0)
+  const [activeSubtitleIndex, setActiveSubtitleIndex] = useState<number>(0)
+
   const [text, setText] = useState("");
 
   const playerRef = useRef<YT.Player>(null);
+
+  const intervalRef = useRef<NodeJS.Timeout | null>(null)
 
   // Initialize or reload the player
   useEffect(() => {
@@ -42,14 +39,14 @@ export default function SubtitleEditor() {
     });
   }, [videoId]);
 
-  const handleSubmit = (e: React.FormEvent) => {
+  /*const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
     if (start >= end) {
       alert("End time must be greater than start time");
       return;
     }
 
-    const newSub: Subtitle = { start, end, text: text.trim() };
+    const newSub: ISubtitle = { start, text: text.trim() };
     const updated = [...subtitles];
 
     if (editIndex >= 0) {
@@ -64,32 +61,8 @@ export default function SubtitleEditor() {
 
     // reset form
     setStart(0);
-    setEnd(0);
     setText("");
-  };
-
-  const editSubtitle = (i: number) => {
-    const s = subtitles[i];
-    setStart(s.start);
-    setEnd(s.end);
-    setText(s.text);
-    setEditIndex(i);
-    window.scrollTo(0, 0);
-  };
-
-  const deleteSubtitle = (i: number) => {
-    if (confirm("Delete this subtitle?")) {
-      const updated = [...subtitles];
-      updated.splice(i, 1);
-      setSubtitles(updated);
-      if (editIndex === i) {
-        setEditIndex(-1);
-        setStart(0);
-        setEnd(0);
-        setText("");
-      }
-    }
-  };
+  };*/
 
   const jumpTo = (time: number) => {
     if (playerRef.current) {
@@ -114,8 +87,8 @@ export default function SubtitleEditor() {
     );
   };
 
-  const exportSrt = () => {
-    if (subtitles.length === 0) {
+  function exportSrt() {
+    /*if (subtitles.length === 0) {
       alert("No subtitles to export!");
       return;
     }
@@ -131,112 +104,126 @@ export default function SubtitleEditor() {
     a.href = URL.createObjectURL(blob);
     a.download = "subtitles.srt";
     a.click();
-    URL.revokeObjectURL(a.href);
+    URL.revokeObjectURL(a.href);*/
   };
 
-  function handleGetVideoPosition(){
-    console.log(secondsToHms(playerRef.current?.getCurrentTime() ?? 0))
+  /*function handleGetVideoPosition(){
+    if(playerRef.current) console.log(DateUtils.secondsToHms(playerRef.current?.getCurrentTime() ?? 0))
+  }*/
+
+  function handleAddSubtitle(e: React.FormEvent){
+    e.preventDefault();
+
+    if(!playerRef.current) return
+
+    const newSub: ISubtitle = { start : playerRef.current.getCurrentTime(), text: text.trim() };
+
+    const existingIndex = subtitles.findIndex(sub => sub.start == newSub.start)
+    
+    if(existingIndex == -1){
+
+      return setSubtitles(subs => [...subs, newSub].sort((a, b) => a.start - b.start))
+    }
+
+    const newSubtitles = [...subtitles]
+    newSubtitles[existingIndex] = newSub
+    setSubtitles(newSubtitles)
   }
 
-  function secondsToHms(seconds : number) {
-    seconds = Math.floor(seconds);
-    const h = Math.floor(seconds / 3600);
-    const m = Math.floor((seconds % 3600) / 60);
-    const s = seconds % 60;
-    return [
-      h.toString().padStart(2, '0'),
-      m.toString().padStart(2, '0'),
-      s.toString().padStart(2, '0')
-    ].join(':');
+  const handleDeleteSubtitle = useCallback((idx: number) => {
+    setSubtitles(prevSubs => prevSubs.filter((_, subIdx) => subIdx !== idx))
+  }, [setSubtitles])
+
+  useEffect(() => {
+    intervalRef.current = setInterval(() => {
+      if(playerRef.current && playerRef.current.getCurrentTime() != currentTimePosition) {
+        setCurrentTimePosition(playerRef.current.getCurrentTime())
+        const activeIndex = findSubtitleIndex(subtitles, playerRef.current.getCurrentTime())
+        console.log(activeIndex)
+        if(activeIndex != activeSubtitleIndex) setActiveSubtitleIndex(activeIndex)
+      }
+    }, 1000)
+
+    return () => clearInterval(intervalRef.current!)
+  }, [subtitles, playerRef, currentTimePosition, activeSubtitleIndex])
+
+  function findSubtitleIndex(subtitles: ISubtitle[], T: number): number {
+    let activeIndex = -1;
+    for (let i = 0; i < subtitles.length; i++) {
+      if (subtitles[i].start >= T) break
+      activeIndex = i
+    }
+    return activeIndex
   }
 
   return (
-    <div style={{ maxWidth: 1440, margin: "20px auto", fontFamily: "Arial, sans-serif" }}>
+    <div className="max-w-[1000px] flex flex-col" style={{ margin: "20px auto", fontFamily: "Arial, sans-serif" }}>
       <h1>YouTube Subtitle Editor</h1>
       <script src="https://www.youtube.com/iframe_api" async/>
 
-      <label>
-        YouTube Video ID:
+      <div className="flex flex-row gap-x-3 items-center">
+        <label>
+          Video to edit :
+        </label>
         <input
+          className="border-gray-300 bg-gray-100 border-[1px] px-[9px] py-[4px] rounded-[4px]"
           type="text"
           placeholder="e.g. dQw4w9WgXcQ"
           value={inputVideoId || "o6nimk_MqPM"}
           onChange={(e) => setInputVideoId(e.target.value)}
         />
-      </label>
-      <button onClick={() => setVideoId(inputVideoId.trim())}>Load Video</button>
-      <button onClick={() => handleGetVideoPosition()}>Get Current Time</button>
+        <button className="bg-blue-400 px-[10px] py-[5px] font-medium text-white rounded-[4px]" onClick={() => setVideoId(inputVideoId.trim())}>Load Video</button>
+      </div>
 
       <div id="player" className="w-full h-[600px] mt-[10px]"/>
 
-      <form
-        onSubmit={handleSubmit}
-        className="mt-[15px] flex gap-[10px] flex-wrap"
+      <div 
+        className="grid grid-cols-[auto_auto_auto_1fr_auto_auto_auto] gap-x-2 auto-rows-[40px] items-center"
       >
-        <label>
-          Start (sec):
-          <input
-            type="number"
-            step="0.1"
-            min="0"
-            value={start}
-            onChange={(e) => setStart(parseFloat(e.target.value))}
-            required
-          />
-        </label>
-        <label>
-          End (sec):
-          <input
-            type="number"
-            step="0.1"
-            min="0"
-            value={end}
-            onChange={(e) => setEnd(parseFloat(e.target.value))}
-            required
-          />
-        </label>
-        <textarea
-          placeholder="Subtitle text"
-          value={text}
-          onChange={(e) => setText(e.target.value)}
-          required
-          style={{ flex: 1, resize: "vertical", minHeight: 40 }}
-        />
-        <button type="submit">Add / Update Subtitle</button>
-      </form>
+        <div></div>
+        <div>Id</div>
+        <div>Time</div>
+        <div>Text</div>
+        <div></div>
+        <div></div>
+        <div></div>
 
-      <table
-        style={{
-          width: "100%",
-          marginTop: 15,
-          borderCollapse: "collapse",
-        }}
+        {subtitles.map((sub, idx) => (
+          <Fragment key={'row' + idx}>
+            <div>{idx == activeSubtitleIndex  ? '▶' : '-'}</div>
+            <div>{idx}</div>
+            <div>{sub.start}</div>
+            <div>{sub.text.slice(0, 20)}</div>
+            <div>
+              <button onClick={() => handleDeleteSubtitle(idx)}>delete</button>
+            </div>
+            <div>
+              <button onClick={() => void 0}>move to</button>
+            </div>
+            <div>
+              <button onClick={() => void 0}>edit text</button>
+            </div>
+          </Fragment>
+        ))}
+      </div>
+
+      <form
+        onSubmit={handleAddSubtitle}
+        className="mt-[15px] flex flex-col gap-[10px]"
       >
-        <thead>
-          <tr>
-            <th>#</th>
-            <th>Start</th>
-            <th>End</th>
-            <th>Text</th>
-            <th>Actions</th>
-          </tr>
-        </thead>
-        <tbody>
-          {subtitles.map((s, i) => (
-            <tr key={i} style={{ border: "1px solid #ddd" }} className="subtitle-row">
-              <td>{i + 1}</td>
-              <td>{s.start.toFixed(3)}</td>
-              <td>{s.end.toFixed(3)}</td>
-              <td>{s.text}</td>
-              <td>
-                <button type="button" onClick={() => editSubtitle(i)}>Edit</button>
-                <button type="button" onClick={() => deleteSubtitle(i)}>Delete</button>
-                <button type="button" onClick={() => jumpTo(s.start)}>Jump</button>
-              </td>
-            </tr>
-          ))}
-        </tbody>
-      </table>
+        <div className="flex flex-col">
+          <label>Text to insert at current position</label>
+          <textarea
+            placeholder="Subtitle text"
+            value={text}
+            onChange={(e) => setText(e.target.value)}
+            required
+            rows={15}
+            className="flex min-h-[40px] border-1 border-gray-300 bg-gray-100 p-[10px] resize-none"
+          />
+        </div>
+        <button type="submit">Add Subtitle</button>
+      </form>
 
       <button onClick={exportSrt} style={{ marginTop: 10 }}>Export as SRT</button>
     </div>
