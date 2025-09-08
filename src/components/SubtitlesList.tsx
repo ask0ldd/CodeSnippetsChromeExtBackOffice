@@ -1,19 +1,40 @@
 import ISubtitle from "@/interfaces/ISubtitle"
+import DateUtils from "@/utils/DateUtils"
 
-function SubtitlesList({subtitles, handleDeleteSubtitle} : {subtitles : ISubtitle[], handleDeleteSubtitle(idx: number): void }){
+function SubtitlesList({subtitles, activeSubtitleIndex, handleDeleteSubtitle} : {subtitles : ISubtitle[], activeSubtitleIndex : number, handleDeleteSubtitle(idx: number): void }){
     return(
-        <div className="flex flex-col">
-            <div><span>Id</span><span>Time</span><span>Text</span></div>
-            {
-            subtitles.map((sub, idx) => 
-                <div key={'row'+idx} className="flex flex-row gap-x-2">
-                <span>{idx}</span>
-                <span>{sub.start}</span>
-                <span>{sub.text.slice(0,20)}</span>
-                <button onClick={() => handleDeleteSubtitle(idx)}>delete</button>
-                </div>)
-            }
-        </div>
+        <table className="table-auto border-collapse border-none border-gray-300 w-full mt-[20px]">
+            <thead>
+            <tr className="border-b-1 border-gray-300 h-[40px] text-left [&>*]:px-[10px]">
+                <th></th>
+                <th>Id</th>
+                <th>Time</th>
+                <th className="w-full">Text</th>
+                <th></th>
+                <th></th>
+                <th></th>
+            </tr>
+            </thead>
+            <tbody>
+                {subtitles.map((sub, idx) => (
+                    <tr key={'row' + idx} className={idx % 2 == 1 ? "bg-gray-100 h-[40px] [&>*]:px-[10px]" : "h-[40px] [&>*]:px-[10px]"}>
+                    <td>{idx === activeSubtitleIndex ? '▶' : '-'}</td>
+                    <td>{idx}</td>
+                    <td>{DateUtils.secondsToHms(sub.start)}</td>
+                    <td className="text-left">{sub.text.slice(0, 20)}</td>
+                    <td>
+                        <button onClick={() => handleDeleteSubtitle(idx)}>delete</button>
+                    </td>
+                    <td>
+                        <button onClick={() => void 0}>move to</button>
+                    </td>
+                    <td>
+                        <button onClick={() => void 0}>edit text</button>
+                    </td>
+                    </tr>
+                ))}
+            </tbody>
+        </table>
     )
 }
 
