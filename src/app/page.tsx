@@ -3,7 +3,8 @@
 "use client";
 
 import ISubtitle from "@/interfaces/ISubtitle";
-import { Fragment, useCallback, useEffect, useRef, useState } from "react";
+import DateUtils from "@/utils/DateUtils";
+import { useCallback, useEffect, useRef, useState } from "react";
 
 export default function SubtitleEditor() {
   const [videoId, setVideoId] = useState("");
@@ -17,7 +18,7 @@ export default function SubtitleEditor() {
 
   const playerRef = useRef<YT.Player>(null);
 
-  const intervalRef = useRef<NodeJS.Timeout | null>(null)
+  const currentTimeListenerRef = useRef<NodeJS.Timeout | null>(null)
 
   // Initialize or reload the player
   useEffect(() => {
@@ -135,7 +136,7 @@ export default function SubtitleEditor() {
   }, [setSubtitles])
 
   useEffect(() => {
-    intervalRef.current = setInterval(() => {
+    currentTimeListenerRef.current = setInterval(() => {
       if(playerRef.current && playerRef.current.getCurrentTime() != currentTimePosition) {
         setCurrentTimePosition(playerRef.current.getCurrentTime())
         const activeIndex = findSubtitleIndex(subtitles, playerRef.current.getCurrentTime())
@@ -144,7 +145,9 @@ export default function SubtitleEditor() {
       }
     }, 1000)
 
-    return () => clearInterval(intervalRef.current!)
+    return () => {
+      if(currentTimeListenerRef.current) clearInterval(currentTimeListenerRef.current)
+    }
   }, [subtitles, playerRef, currentTimePosition, activeSubtitleIndex])
 
   function findSubtitleIndex(subtitles: ISubtitle[], T: number): number {
@@ -177,35 +180,38 @@ export default function SubtitleEditor() {
 
       <div id="player" className="w-full h-[600px] mt-[10px]"/>
 
-      <div 
-        className="grid grid-cols-[auto_auto_auto_1fr_auto_auto_auto] gap-x-2 auto-rows-[40px] items-center"
-      >
-        <div></div>
-        <div>Id</div>
-        <div>Time</div>
-        <div>Text</div>
-        <div></div>
-        <div></div>
-        <div></div>
-
-        {subtitles.map((sub, idx) => (
-          <Fragment key={'row' + idx}>
-            <div>{idx == activeSubtitleIndex  ? '▶' : '-'}</div>
-            <div>{idx}</div>
-            <div>{sub.start}</div>
-            <div>{sub.text.slice(0, 20)}</div>
-            <div>
-              <button onClick={() => handleDeleteSubtitle(idx)}>delete</button>
-            </div>
-            <div>
-              <button onClick={() => void 0}>move to</button>
-            </div>
-            <div>
-              <button onClick={() => void 0}>edit text</button>
-            </div>
-          </Fragment>
-        ))}
-      </div>
+      <table className="table-auto border-collapse border-none border-gray-300 w-full mt-[20px]">
+        <thead>
+          <tr className="border-b-1 border-gray-300 h-[40px] text-left [&>*]:px-[10px]">
+            <th></th>
+            <th>Id</th>
+            <th>Time</th>
+            <th className="w-full">Text</th>
+            <th></th>
+            <th></th>
+            <th></th>
+          </tr>
+        </thead>
+        <tbody>
+          {subtitles.map((sub, idx) => (
+            <tr key={'row' + idx} className={idx % 2 == 1 ? "bg-gray-100 h-[40px] [&>*]:px-[10px]" : "h-[40px] [&>*]:px-[10px]"}>
+              <td>{idx === activeSubtitleIndex ? '▶' : '-'}</td>
+              <td>{idx}</td>
+              <td>{DateUtils.secondsToHms(sub.start)}</td>
+              <td className="text-left">{sub.text.slice(0, 20)}</td>
+              <td>
+                <button onClick={() => handleDeleteSubtitle(idx)}>delete</button>
+              </td>
+              <td>
+                <button onClick={() => void 0}>move to</button>
+              </td>
+              <td>
+                <button onClick={() => void 0}>edit text</button>
+              </td>
+            </tr>
+          ))}
+        </tbody>
+      </table>
 
       <form
         onSubmit={handleAddSubtitle}
