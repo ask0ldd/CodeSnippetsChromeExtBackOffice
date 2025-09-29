@@ -22,7 +22,7 @@ function useActiveSubtitleTracker({subtitles, playerRef} : {subtitles : ISubtitl
         }
     }, [subtitles, playerRef, currentTimePosition, activeSubtitleIndex])
 
-    return { activeSubtitleIndex, setActiveSubtitleIndex }
+    return { activeSubtitleIndex, setActiveSubtitleIndex, currentTimePosition }
 }
 
 export default useActiveSubtitleTracker
