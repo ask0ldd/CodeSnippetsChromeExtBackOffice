@@ -3,13 +3,13 @@ import DateUtils from "@/utils/DateUtils"
 
 function SubtitlesList({subtitles, activeSubtitleIndex, handleDeleteSubtitle} : {subtitles : ISubtitle[], activeSubtitleIndex : number, handleDeleteSubtitle(idx: number): void }){
     return(
-        <table className="table-auto border-collapse border-none border-gray-300 w-full mt-[20px]">
+        <table className="table-auto border-collapse border-none border-gray-300 w-full mt-[20px] text-[14px]">
             <thead>
-            <tr className="border-b-1 border-gray-300 h-[40px] text-left [&>*]:px-[10px]">
+            <tr className="border-b-1 border-gray-300 h-[24px] text-left [&>*]:px-[10px]">
                 <th></th>
-                <th>Id</th>
-                <th>Time</th>
-                <th className="w-full">Text</th>
+                <th>ID</th>
+                <th>TIME</th>
+                <th className="w-full">TEXT</th>
                 <th></th>
                 <th></th>
                 <th></th>
