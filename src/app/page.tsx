@@ -2,13 +2,15 @@
 // https://developers.google.com/youtube/iframe_api_reference
 "use client";
 
+import SubtitleEditor from "@/components/SubtitleEditor";
 import SubtitlesList from "@/components/SubtitlesList";
+import Timeline from "@/components/Timeline";
 import YoutubePlayer from "@/components/YoutubePlayer";
 import useActiveSubtitleTracker from "@/hooks/useActiveSubtitleTracker";
 import ISubtitle from "@/interfaces/ISubtitle";
-import { useCallback, useEffect, useRef, useState } from "react";
+import { SetStateAction, useCallback, useRef, useState } from "react";
 
-export default function SubtitleEditor() {
+export default function Home() {
   const [videoId, setVideoId] = useState("");
   const [inputVideoId, setInputVideoId] = useState("");
   const [subtitles, setSubtitles] = useState<ISubtitle[]>([]);
@@ -16,7 +18,7 @@ export default function SubtitleEditor() {
 
   const playerRef = useRef<YT.Player>(null);
 
-  const { activeSubtitleIndex } = useActiveSubtitleTracker({subtitles, playerRef})
+  const { activeSubtitleIndex, currentTimePosition } = useActiveSubtitleTracker({subtitles, playerRef})
 
   /*const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
@@ -43,36 +45,15 @@ export default function SubtitleEditor() {
     setText("");
   };*/
 
-  const jumpTo = (time: number) => {
+  /*const jumpTo = (time: number) => {
     if (playerRef.current) {
       playerRef.current.seekTo(time, true);
       playerRef.current.playVideo();
     }
-  };
+  };*/
 
   function exportSrt() {
   };
-
-  function handleAddSubtitle(e: React.FormEvent){
-    e.preventDefault();
-
-    if(!playerRef.current) return
-
-    const newSub: ISubtitle = { start : playerRef.current.getCurrentTime(), text: text.trim() };
-
-    const existingIndex = subtitles.findIndex(sub => sub.start == newSub.start)
-    
-    if(existingIndex == -1){
-
-      setSubtitles(subs => [...subs, newSub].sort((a, b) => a.start - b.start))
-      return setText("")
-    }
-
-    const newSubtitles = [...subtitles]
-    newSubtitles[existingIndex] = newSub
-    setSubtitles(newSubtitles)
-
-  }
 
   const handleDeleteSubtitle = useCallback((idx: number) => {
     setSubtitles(prevSubs => prevSubs.filter((_, subIdx) => subIdx !== idx))
@@ -85,7 +66,7 @@ export default function SubtitleEditor() {
 
       <div className="flex flex-row gap-x-3 items-center">
         <label>
-          Video to edit :
+          Video to associate timed content to :
         </label>
         <input
           className="border-gray-300 bg-gray-100 border-[1px] px-[9px] py-[4px] rounded-[4px]"
@@ -94,31 +75,15 @@ export default function SubtitleEditor() {
           value={inputVideoId || "o6nimk_MqPM"}
           onChange={(e) => setInputVideoId(e.target.value)}
         />
-        <button className="bg-blue-400 px-[10px] py-[5px] font-medium text-white rounded-[4px]" onClick={() => setVideoId(inputVideoId.trim())}>Load Video</button>
+        <button className="bg-blue-400 px-[10px] py-[5px] font-medium text-white rounded-[4px] cursor-pointer" onClick={() => setVideoId(inputVideoId.trim())}>Load Video</button>
       </div>
 
       <div id="player" className="w-full h-[600px] mt-[10px]"/>
+      <Timeline currentTimePosition={currentTimePosition} subtitles={subtitles} playerRef={playerRef}/>
 
       <SubtitlesList subtitles={subtitles} activeSubtitleIndex={activeSubtitleIndex} handleDeleteSubtitle={handleDeleteSubtitle} />
 
-      <form
-        onSubmit={handleAddSubtitle}
-        className="mt-[15px] flex flex-col gap-[10px]"
-      >
-        <div className="flex flex-col">
-          <label>Text to insert at current position</label>
-          <textarea
-            id="subtitleInput"
-            placeholder="Subtitle text"
-            value={text}
-            onChange={(e) => setText(e.target.value)}
-            required
-            rows={15}
-            className="flex min-h-[40px] border-1 border-gray-300 bg-gray-100 p-[10px] resize-none"
-          />
-        </div>
-        <button type="submit">Add Subtitle</button>
-      </form>
+      <SubtitleEditor subtitles={subtitles} text={text} setText={setText} setSubtitles={setSubtitles} playerRef={playerRef}/>
 
       <button onClick={exportSrt} style={{ marginTop: 10 }}>Export as SRT</button>
     </div>
