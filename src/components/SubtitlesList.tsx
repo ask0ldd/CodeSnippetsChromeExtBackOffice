@@ -1,5 +1,7 @@
 import ISubtitle from "@/interfaces/ISubtitle"
 import DateUtils from "@/utils/DateUtils"
+import ActionButton from "./ActionButton"
+import Image from "next/image"
 
 function SubtitlesList({subtitles, activeSubtitleIndex, handleDeleteSubtitle} : {subtitles : ISubtitle[], activeSubtitleIndex : number, handleDeleteSubtitle(idx: number): void }){
     return(
@@ -12,7 +14,6 @@ function SubtitlesList({subtitles, activeSubtitleIndex, handleDeleteSubtitle} : 
                     <th className="w-full">TEXT</th>
                     <th></th>
                     <th></th>
-                    <th></th>
                 </tr>
             </thead>
             <tbody>
@@ -22,14 +23,15 @@ function SubtitlesList({subtitles, activeSubtitleIndex, handleDeleteSubtitle} : 
                         <td>{idx}</td>
                         <td>{DateUtils.secondsToHms(sub.start)}</td>
                         <td className="text-left">{sub.text.slice(0, 20)}</td>
-                        <td>
-                            <button onClick={() => handleDeleteSubtitle(idx)}>del</button>
+                        <td className="h-[30px]">
+                            <div className="flex justify-center items-center h-full">
+                                <ActionButton icon={<Image alt="edit icon" src="/edit.svg" width={14} height={14}/>} onClick={() => void 0}/>
+                            </div>
                         </td>
-                        <td>
-                            <button onClick={() => void 0}>move</button>
-                        </td>
-                        <td>
-                            <button onClick={() => void 0}>edit</button>
+                        <td className="h-[30px]">
+                            <div className="flex justify-center items-center h-full">
+                                <ActionButton icon={<Image alt="delete icon" src="/del.svg" width={14} height={14}/>} onClick={() => handleDeleteSubtitle(idx)}/>
+                            </div>
                         </td>
                     </tr>
                 ))}
