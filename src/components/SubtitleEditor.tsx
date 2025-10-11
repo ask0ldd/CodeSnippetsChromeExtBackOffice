@@ -37,10 +37,10 @@ export default function SubtitleEditor({text, setText, playerRef, subtitles, set
                 onChange={(e) => setText(e.target.value)}
                 required
                 rows={15}
-                className="flex min-h-[40px] border-1 border-gray-300 bg-gray-100 p-[10px] resize-none"
+                className="flex min-h-[40px] border-1 border-gray-300 bg-gray-100 p-[10px] resize-none focus:outline-blue-400"
             />
             </div>
-            <button type="submit">Add Subtitle</button>
+            <button className="bg-blue-400 px-[10px] py-[10px] font-semibold text-white rounded-[4px] cursor-pointer" type="submit">Add Subtitle</button>
         </form>
     )
 }
