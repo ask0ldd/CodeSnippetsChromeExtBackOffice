@@ -61,7 +61,7 @@ export default function Home() {
 
   return (
     <div className="max-w-[1000px] flex flex-col" style={{ margin: "20px auto", fontFamily: "Arial, sans-serif" }}>
-      <h1>YouTube Subtitle Editor</h1>
+      <h1 className="flex bg-gray-100 font-bold text-[24px] p-[10px] mb-[20px] justify-center border-1 border-gray-300">YouTube Subtitle Editor</h1>
       <YoutubePlayer videoId={videoId} playerRef={playerRef}/>
 
       <div className="flex flex-row gap-x-3 items-center">
@@ -69,13 +69,13 @@ export default function Home() {
           Video to associate timed content to :
         </label>
         <input
-          className="border-gray-300 bg-gray-100 border-[1px] px-[9px] py-[4px] rounded-[4px]"
+          className="h-[40px] border-gray-300 bg-gray-100 border-[1px] px-[9px] py-[4px] rounded-[4px] focus:outline-blue-400"
           type="text"
           placeholder="e.g. dQw4w9WgXcQ"
           value={inputVideoId || "o6nimk_MqPM"}
           onChange={(e) => setInputVideoId(e.target.value)}
         />
-        <button className="bg-blue-400 px-[10px] py-[5px] font-medium text-white rounded-[4px] cursor-pointer" onClick={() => setVideoId(inputVideoId.trim())}>Load Video</button>
+        <button className="h-[40px] flex justify-center items-center bg-blue-400 px-[15px] font-semibold text-white rounded-[4px] cursor-pointer" onClick={() => setVideoId(inputVideoId.trim())}>Load Video</button>
       </div>
 
       <div id="player" className="w-full h-[600px] mt-[10px]"/>
@@ -85,7 +85,7 @@ export default function Home() {
 
       <SubtitleEditor subtitles={subtitles} text={text} setText={setText} setSubtitles={setSubtitles} playerRef={playerRef}/>
 
-      <button onClick={exportSrt} style={{ marginTop: 10 }}>Export as SRT</button>
+      <button onClick={exportSrt} className="h-[40px] flex justify-center items-center bg-green-300 px-[10px] text-white rounded-[4px] cursor-pointer mt-[10px] font-semibold">Export as SRT</button>
     </div>
   );
 }
